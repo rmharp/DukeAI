@@ -9,7 +9,23 @@ import json
 import requests
 
 cred = credentials.Certificate('dukeai-103f8-369df2b50aa4.json')
-# firebase_admin.initialize_app(cred)
+#firebase_admin.initialize_app(cred)
+
+def researcher_profile_setup_page():
+    st.title("Set up your Profile")
+
+    with st.form("researcher_profile_form"):
+        name = st.text_input("Name")
+        organization_email = st.text_input("Organization Email")
+        position = st.text_input("Position")
+        research_keywords = st.text_area("Research Keywords (comma-separated)")
+        phone_number = st.text_input("Phone Number")
+
+        # Submit button
+        submitted = st.form_submit_button("Submit Profile")
+        if submitted:
+            st.success("Researcher profile information saved successfully!")
+
 
 def participant_profile_setup_page():
     st.title("Set up your Profile")
@@ -48,6 +64,7 @@ def role_selection_page():
     elif st.button('Researcher'):
         st.write("You selected Researcher.")
         st.session_state.show_role_selection = False
+        st.session_state.show_researcher_profile = True # Show researcher profile setup
 
 def app():
     st.title(':blue[T]rial :blue[T]alk')
@@ -61,6 +78,8 @@ def app():
         st.session_state.show_role_selection = False 
     if 'show_participant_profile' not in st.session_state:
         st.session_state.show_participant_profile = False
+    if 'show_researcher_profile' not in st.session_state:
+        st.session_state.show_researcher_profile = False
     if 'signedout' not in st.session_state:
         st.session_state.signedout = False
     if 'signout' not in st.session_state:
@@ -81,11 +100,14 @@ def app():
         st.session_state.signedout = False
         st.session_state.show_role_selection = False
         st.session_state.show_participant_profile = False
+        st.session_state.show_researcher_profile = False
         st.session_state.username = ''
 
     if st.session_state.username:
         if st.session_state.show_participant_profile:
             participant_profile_setup_page()
+        elif st.session_state.show_researcher_profile:
+            researcher_profile_setup_page()
         elif st.session_state.show_role_selection:
             role_selection_page()
         else:
