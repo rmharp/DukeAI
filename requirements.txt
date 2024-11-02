@@ -1,2 +1,4 @@
-streamlit
-google-cloud-firestore
+streamlit="1.39.0"
+google-cloud-firestore="2.19.0"
+httpx-oauth="0.15.1"
+firebase-admin="6.5.0"
