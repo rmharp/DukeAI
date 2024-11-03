@@ -710,14 +710,24 @@ def clinicaltrialdata():
                         unsafe_allow_html=True
                     )
 
-                st.markdown(f"<h2>{brief_title}</h2>", unsafe_allow_html=True)
+                if nct_id:
+                    title_link = f"https://clinicaltrials.gov/study/{nct_id}"
+                    st.markdown(f"<h2><a href='{title_link}' target='_blank' style='color: #56c1ca;'>{brief_title}</a></h2>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<h2 style='color: #56c1ca;'>{brief_title}</h2>", unsafe_allow_html=True)
+
                 if description:
                     st.write(description)
                 else:
                     st.write("Description not available.")
 
+                # Display keywords from 'openai_hashtags' if available
+                openai_hashtags = d.get('openai_hashtags', [])
+                if openai_hashtags:
+                    st.markdown(f"**Keywords:** {' | '.join(openai_hashtags)}")
+
                 # Add user query input for each trial and display OpenAI response
-                user_query = st.text_input("Do you have any questions?", key=f"ask_{nct_id}")
+                user_query = st.text_input("**Do you have any questions?**", key=f"ask_{nct_id}")
                 if user_query:
                     clinical_trial_data = fetch_clinical_trial_by_nct_id(db, nct_id)
                     if clinical_trial_data:
