@@ -235,6 +235,7 @@ def researcher_profile_setup_page():
     position_researcher = st.text_input("Position", key="position_researcher")
     research_keywords_researcher = st.text_area("Research Keywords (comma-separated)", key="research_keywords_researcher")
     phone_number_researcher = st.text_input("Phone Number", key="phone_number_researcher")
+    actively_recruiting_researcher = st.text_input("Actively Recruiting?", key="actively_recruiting_researcher")
     
     # Define the researcher info form submission function
     def submit_form_researcher():
@@ -244,6 +245,7 @@ def researcher_profile_setup_page():
         position_researcher = st.session_state.position_researcher
         research_keywords_researcher = st.session_state.research_keywords_researcher
         phone_number_researcher = st.session_state.phone_number_researcher
+        actively_recruiting_researcher = st.session_state.actively_recruiting_researcher
         uid = st.session_state.username
 
         # Validate inputs to form
@@ -262,6 +264,7 @@ def researcher_profile_setup_page():
                     'position_researcher': position_researcher,
                     'research_keywords_researcher': research_keywords_researcher,
                     'phone_number_researcher': phone_number_researcher,
+                    'actively_recruiting_researcher': actively_recruiting_researcher,
                     'timestamp': datetime.datetime.utcnow(),
                     'uid': uid
                 }
@@ -278,12 +281,6 @@ def researcher_profile_setup_page():
 
     # Attach the submit_form function to the button
     st.button("Submit", key="submit_button_researcher", on_click=submit_form_researcher) 
-
-
-
-
-
-    
 
 def collect_study_information():
     st.title(':blue[T]rial :blue[T]alk')
