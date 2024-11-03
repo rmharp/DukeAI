@@ -3,3 +3,4 @@ google-cloud-firestore==2.19.0
 httpx-oauth==0.15.1
 firebase-admin==6.5.0
 openai==1.42.0
+python-dotenv==1.0.1
