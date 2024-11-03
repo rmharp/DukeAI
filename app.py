@@ -67,7 +67,7 @@ def login_page():
                     st.session_state.useremail = user.email
                     st.session_state.username = user.uid
                     st.session_state.signout = True
-                    st.session_state.current_page = 'participant_profile'
+                    st.session_state.current_page = 'researcher_profile'
                     st.session_state.db = firestore.client()
 
                     # Force a rerun by updating a dummy session state variable
@@ -184,25 +184,25 @@ def participant_profile_setup_page():
 
                 # Prepare the data to save
                 data = {
-                    'first_name_participant': st.session_state.first_name_participant,
-                    'last_name_participant': st.session_state.last_name_participant,
-                    'sexuality_participant': st.session_state.sexuality_participant,
-                    'age_participant': st.session_state.age_participant,
-                    'sex_participant': st.session_state.sex_participant,
-                    'state_participant': st.session_state.state_participant,
-                    'city_participant': st.session_state.city_participant,
-                    'address_participant': st.session_state.address_participant,
-                    'height_participant': st.session_state.height_participant,
-                    'weight_participant': st.session_state.weight_participant,
-                    'previous_surgery_participant': st.session_state.previous_surgery_participant,
-                    'mental_disability_participant': st.session_state.mental_disability_participant,
-                    'physical_disability_participant': st.session_state.physical_disability_participant,
-                    'previous_records_participant': st.session_state.previous_records_participant,
-                    'pregnancy_participant': st.session_state.pregnancy_participant,
-                    'breastfeeding_participant': st.session_state.breastfeeding_participant,
-                    'allergy_participant': st.session_state.allergy_participant,
-                    'smoking_participant': st.session_state.smoking_participant,
-                    'blood_type_participant': st.session_state.blood_type_participant,
+                    'first_name_participant': first_name_participant,
+                    'last_name_participant': last_name_participant,
+                    'sexuality_participant': sexuality_participant,
+                    'age_participant': age_participant,
+                    'sex_participant': sex_participant,
+                    'state_participant': state_participant,
+                    'city_participant': city_participant,
+                    'address_participant': address_participant,
+                    'height_participant': height_participant,
+                    'weight_participant': weight_participant,
+                    'previous_surgery_participant': previous_surgery_participant,
+                    'mental_disability_participant': mental_disability_participant,
+                    'physical_disability_participant': physical_disability_participant,
+                    'previous_records_participant': previous_records_participant,
+                    'pregnancy_participant': pregnancy_participant,
+                    'breastfeeding_participant': breastfeeding_participant,
+                    'allergy_participant': allergy_participant,
+                    'smoking_participant': smoking_participant,
+                    'blood_type_participant': blood_type_participant,
                     'timestamp': datetime.datetime.utcnow(),
                     'uid': uid
                 }
@@ -230,17 +230,60 @@ def researcher_profile_setup_page():
     
     st.title("Set up your Profile")
 
-    with st.form("researcher_profile_form"):
-        name = st.text_input("Name")
-        organization_email = st.text_input("Organization Email")
-        position = st.text_input("Position")
-        research_keywords = st.text_area("Research Keywords (comma-separated)")
-        phone_number = st.text_input("Phone Number")
+    name_researcher = st.text_input("Name", key="name_researcher")
+    organization_email_researcher = st.text_input("Organization Email", key="organization_email_researcher")
+    position_researcher = st.text_input("Position", key="position_researcher")
+    research_keywords_researcher = st.text_area("Research Keywords (comma-separated)", key="research_keywords_researcher")
+    phone_number_researcher = st.text_input("Phone Number", key="phone_number_researcher")
+    
+    # Define the researcher info form submission function
+    def submit_form_researcher():
+        # Access all input values from st.session_state
+        name_researcher = st.session_state.name_researcher
+        organization_email_researcher = st.session_state.organization_email_researcher
+        position_researcher = st.session_state.position_researcher
+        research_keywords_researcher = st.session_state.research_keywords_researcher
+        phone_number_researcher = st.session_state.phone_number_researcher
+        uid = st.session_state.username
 
-        # Submit button
-        submitted = st.form_submit_button("Submit Profile")
-        if submitted:
-            st.success("Researcher profile information saved successfully!") 
+        # Validate inputs to form
+        if not name_researcher or not organization_email_researcher or not phone_number_researcher:
+            st.error("Please fill out all the required researcher details.")
+        else:
+            try:
+                db = st.session_state.db
+                # Use 'studies' as the document reference
+                researchers = db.collection('researchers').document()
+
+                # Prepare the data to save
+                data = {
+                    'name_researcher': name_researcher,
+                    'organization_email_researcher': organization_email_researcher,
+                    'position_researcher': position_researcher,
+                    'research_keywords_researcher': research_keywords_researcher,
+                    'phone_number_researcher': phone_number_researcher,
+                    'timestamp': datetime.datetime.utcnow(),
+                    'uid': uid
+                }
+
+                # Save the data to Firestore
+                researchers.set(data)
+
+                st.success("Form submitted successfully!")
+                st.session_state.current_page = 'clinicaltrialdata'
+                # Force a rerun
+                st.session_state['dummy'] = not st.session_state.get('dummy', False)
+            except Exception as e:
+                st.error(f"An error occurred while submitting the form: {e}")
+
+    # Attach the submit_form function to the button
+    st.button("Submit", key="submit_button_researcher", on_click=submit_form_researcher) 
+
+
+
+
+
+    
 
 def collect_study_information():
     st.title(':blue[T]rial :blue[T]alk')
