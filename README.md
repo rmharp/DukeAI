@@ -14,7 +14,7 @@ To address this issue, we propose ClinicalConsent. By utilizing the GPT API, Cli
 Riley Harper - rileyharper2142@gmail.com <br> 
 Michael Puglise - michael.puglise@duke.edu <br>
 Claire Kim - hj00claire@gmail.com <br>
-Eunice Kim - yeonseokim1223@gmail.com
+Yeonseo Kim - yeonseokim1223@gmail.com
 
 ## Acknowledgments
 - Duke AI Hackathon 2024
