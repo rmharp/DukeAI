@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import openai
+import requests
 import firebase_admin
+from dotenv import load_dotenv
 from firebase_admin import firestore
 from firebase_admin import credentials
 from firebase_admin import auth
@@ -10,6 +13,10 @@ import os
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
+
+# Load environment variables from a .env file
+load_dotenv()
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 # Initialize Firebase only if it hasn't been initialized yet
 if not firebase_admin._apps:
@@ -489,9 +496,74 @@ def collect_study_information():
     # Attach the submit_form function to the button
     st.button("Submit", key="submit_button", on_click=submit_form)
 
-def clinicaltrialdata():
-    import streamlit as st
 
+def fetch_clinical_trial_by_nct_id(db, nct_id):
+    trials_ref = db.collection('clinical_trials')
+    docs = trials_ref.where('nctId', '==', nct_id).get()
+    if docs:
+        return docs[0].to_dict()
+    else:
+        st.error(f"No clinical trial found for NCT ID: {nct_id}")
+        return None
+
+
+def get_openai_response(user_question, clinical_trial_data, model_choice="gpt-3.5-turbo"):
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {openai.api_key}"
+    }
+
+    system_content = (
+        "You are a knowledgeable assistant providing detailed explanations about clinical trials. "
+        "Ensure your response is informative and understandable for a general audience without medical expertise. "
+        "Use the following format:\n"
+        "- Introduction with background information\n"
+        "- Details of the trial's purpose and methods\n"
+        "- Any relevant eligibility and participation information\n"
+        "- Contact details for further inquiry if available\n"
+        "\n"
+        "Always maintain clarity and use simple language."
+    )
+
+    # Prepare the assistant content from Firestore data
+    assistant_content = (
+        f"Here is detailed information about the clinical trial:\n"
+        f"- **Title**: {clinical_trial_data.get('title', 'No Title')}\n"
+        f"- **Summary**: {clinical_trial_data.get('briefSummary', 'Summary not available')}\n"
+        f"- **Description**: {clinical_trial_data.get('description', 'Description not available')}\n"
+        f"- **Eligibility Criteria**: {clinical_trial_data.get('eligibilityCriteria', 'Not specified')}\n"
+        f"- **Conditions Studied**: {', '.join(clinical_trial_data.get('conditions', []))}\n"
+        f"- **Enrollment Target**: {clinical_trial_data.get('enrollmentCount', 'Not specified')}\n"
+        f"- **Status**: {clinical_trial_data.get('overallStatus', 'Not specified')}\n"
+        f"- **Location**: {clinical_trial_data.get('locationFacility', 'Facility not specified')}, "
+        f"{clinical_trial_data.get('locationCity', '')}, {clinical_trial_data.get('locationState', '')}, "
+        f"{clinical_trial_data.get('locationCountry', '')}\n"
+        f"- **Contact**: {clinical_trial_data.get('centralContactName', 'No contact specified')} "
+        f"({clinical_trial_data.get('centralContactEmail', 'No email available')})\n"
+        f"\nPlease provide an explanation based on the above information."
+    )
+
+    data = {
+        "model": model_choice,
+        "messages": [
+            {"role": "system", "content": system_content},
+            {"role": "assistant", "content": assistant_content},
+            {"role": "user", "content": user_question}
+        ],
+        "max_tokens": 500
+    }
+
+    response = requests.post(url, json=data, headers=headers)
+    if response.status_code == 200:
+        output = response.json()['choices'][0]['message']['content']
+        return output.strip()
+    else:
+        st.error(f"Error: {response.status_code} - {response.text}")
+        return "No response generated."
+    
+
+def clinicaltrialdata():
     st.markdown(
         '<h1><span style="color: #56c1ca;">C</span>linical <span style="color: #56c1ca;">C</span>onsent</h1>',
         unsafe_allow_html=True
@@ -643,10 +715,15 @@ def clinicaltrialdata():
                     st.write(description)
                 else:
                     st.write("Description not available.")
-                user_query = st.text_input("Do you have any questions?", key=f"ask_{nct_id}")
 
+                # Add user query input for each trial and display OpenAI response
+                user_query = st.text_input("Do you have any questions?", key=f"ask_{nct_id}")
                 if user_query:
-                    print(f"User query for {nct_id}: {user_query}")
+                    clinical_trial_data = fetch_clinical_trial_by_nct_id(db, nct_id)
+                    if clinical_trial_data:
+                        response = get_openai_response(user_query, clinical_trial_data)
+                        st.markdown("### Assistant's Response")
+                        st.write(response)
 
                 st.markdown("<hr>", unsafe_allow_html=True)
             except Exception as e:
