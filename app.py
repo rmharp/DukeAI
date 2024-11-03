@@ -6,11 +6,56 @@ from firebase_admin import firestore
 from firebase_admin import credentials
 from firebase_admin import auth
 import datetime
+import os
 
 # Initialize Firebase only if it hasn't been initialized yet
 if not firebase_admin._apps:
     cred = credentials.Certificate('dukeai-103f8-369df2b50aa4.json')
     firebase_admin.initialize_app(cred)
+
+    # Add custom CSS styling
+st.markdown("""
+    <style>
+    /* Style the title */
+    .title {
+        font-size: 30px;
+        color: #4A90E2;
+        font-weight: bold;
+        margin-top: 20px;
+    }
+
+    /* Style for buttons */
+    .stButton > button {
+        background-color: #56c1ca;
+        color: white;
+        font-size: 16px;
+        margin: 10px 0;
+        padding: 8px 16px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+    .stButton > button:hover {
+        background-color: #132c5e;
+    }
+
+    /* Style text inputs */
+    input[type="text"], input[type="password"] {
+        padding: 8px;
+        width: 100%;
+        font-size: 16px;
+        margin: 10px 0;
+        border-radius: 5px;
+    }
+
+    /* Placeholder container styling */
+    .stContainer {
+        background-color: #f9f9f9;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 def app():
     # Initialize session state variables
@@ -46,7 +91,9 @@ def app():
             st.error('Unknown page')
 
 def login_page():
-    st.title(':blue[C]linical :blue[C]onsent')
+    
+    image_path = os.path.join('media', 'clinical_consent_pfp.png')
+    st.image(image_path, use_column_width=True)
 
     choice = st.selectbox('Login/Signup', ['Login', 'Sign Up'], key='login_choice')
 
@@ -139,7 +186,10 @@ def login_page():
         st.button('Create my account', key='signup_button', on_click=create_account)
 
 def role_selection_page():
-    st.title(':blue[C]linical :blue[C]onsent')
+    st.markdown(
+        '<h1><span style="color: #56c1ca;">C</span>linical <span style="color: #56c1ca;">C</span>onsent</h1>',
+        unsafe_allow_html=True
+    )
 
     # Display user info and sign out button
     st.text('Username: ' + st.session_state.username)
@@ -161,7 +211,10 @@ def role_selection_page():
 
 def participant_profile_setup_page():
     global registered
-    st.title(':blue[C]linical :blue[C]onsent')
+    st.markdown(
+        '<h1><span style="color: #56c1ca;">C</span>linical <span style="color: #56c1ca;">C</span>onsent</h1>',
+        unsafe_allow_html=True
+    )
 
     # Display user info and sign out button
     st.text('Username: ' + st.session_state.username)
@@ -264,7 +317,10 @@ def participant_profile_setup_page():
     st.button("Submit Profile", key="submit_button_participant", on_click=submit_form_participant) 
 
 def researcher_profile_setup_page():
-    st.title(':blue[C]linical :blue[C]onsent')
+    st.markdown(
+        '<h1><span style="color: #56c1ca;">C</span>linical <span style="color: #56c1ca;">C</span>onsent</h1>',
+        unsafe_allow_html=True
+    )
 
     # Display user info and sign out button
     st.text('Username: ' + st.session_state.username)
@@ -328,7 +384,10 @@ def researcher_profile_setup_page():
     st.button("Submit Profile", key="submit_button_researcher", on_click=submit_form_researcher) 
 
 def collect_study_information():
-    st.title(':blue[C]linical :blue[C]onsent')
+    st.markdown(
+        '<h1><span style="color: #56c1ca;">C</span>linical <span style="color: #56c1ca;">C</span>onsent</h1>',
+        unsafe_allow_html=True
+    )
 
     # Display user info and sign out button
     st.text('Username: ' + st.session_state.username)
@@ -428,7 +487,10 @@ def collect_study_information():
     st.button("Submit", key="submit_button", on_click=submit_form)
 
 def clinicaltrialdata():
-    st.title(':blue[C]linical :blue[C]onsent')
+    st.markdown(
+        '<h1><span style="color: #56c1ca;">C</span>linical <span style="color: #56c1ca;">C</span>onsent</h1>',
+        unsafe_allow_html=True
+    )
 
     # Display user info and sign out button
     st.text('Username: ' + st.session_state.username)
