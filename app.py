@@ -7,6 +7,9 @@ from firebase_admin import credentials
 from firebase_admin import auth
 import datetime
 import os
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 # Initialize Firebase only if it hasn't been initialized yet
 if not firebase_admin._apps:
@@ -504,48 +507,160 @@ def clinicaltrialdata():
         st.error('Database connection not established.')
         return
 
-    clinical_trials = db.collection('clinical_trials').get()
+    # Get participant data
+    participants_ref = db.collection('participants')
+    participant_query = participants_ref.where('uid', '==', st.session_state.username).get()
+    if participant_query:
+        # Since uid should be unique, we can take the first document
+        participant_doc = participant_query[0]
+        participant_data = participant_doc.to_dict()
 
-    for clinical_trial in clinical_trials:
+        # Extract necessary fields
+        age_participant = participant_data.get('age_participant', '')
+        sex_participant = participant_data.get('sex_participant', '').strip().lower()
+        city_participant = participant_data.get('city_participant', '')
+        state_participant = participant_data.get('state_participant', '')
+        mental_disability_participant = participant_data.get('mental_disability_participant', '')
+        physical_disability_participant = participant_data.get('physical_disability_participant', '')
+    else:
+        # Handle the case where no participant is found
+        st.error("No participant found with the given UID.")
+        return
+
+    # Ensure age is an integer
+    try:
+        age_participant = int(age_participant)
+    except (ValueError, TypeError):
+        st.error("Participant's age is not a valid number.")
+        return
+
+    # Reference to the 'clinical_trials' collection
+    trials_ref = db.collection('clinical_trials')
+
+    # Get all clinical trials
+    clinical_trials_query = trials_ref.get()
+
+    matched_trials = []
+
+    for clinical_trial in clinical_trials_query:
         d = clinical_trial.to_dict()
-        try:
-            # Retrieve data without default values
-            nct_id = d.get('nctId', '')
-            status_verified_date = d.get('statusVerifiedDate', '')
-            brief_title = d.get('briefTitle', 'No Title')
-            description = d.get('description', '')
 
-            # Prepare left and right content only if data exists
-            left_content = f"<strong>NCT ID:</strong> {nct_id}" if nct_id else ''
-            right_content = f"<strong>Status Verified Date:</strong> {status_verified_date}" if status_verified_date else ''
+        # Initialize match to True
+        is_match = True
+        
+        testing = False
+        if testing:
 
-            # Display the top line with alignment
-            if left_content or right_content:
-                st.markdown(
-                    f"""
-                    <div style="display: flex; justify-content: space-between; width: 100%;">
-                        <div style="text-align: left;">{left_content}</div>
-                        <div style="text-align: right;">{right_content}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+            # Location matching
+            trial_city = d.get('locationCity', '')
+            trial_state = d.get('locationState', '')
 
-            st.markdown(f"<h2>{brief_title}</h2>", unsafe_allow_html=True)
-            if description:
-                st.write(description)
-            else:
-                st.write("Description not available.")
-            user_query = st.text_input("Ask me Anything:", key=f"ask_{nct_id}")
+            if trial_city != '' and trial_state != '':
+                # For simplicity, we'll assume if city and state match, it's within 20 miles
+                if trial_city.strip().lower() != city_participant.strip().lower() or trial_state.strip().lower() != state_participant.strip().lower():
+                    is_match = False
+            elif trial_state != '':
+                if trial_state.strip().lower() != state_participant.strip().lower():
+                    is_match = False
+            # If both locationCity and locationState are unspecified, treat as unrestrictive
+        
+        # Sex matching
+        trial_sex = d.get('sex', 'All')
+        if trial_sex not in [None, '', 'All', 'ALL', all]:
+            if trial_sex.strip().lower() != sex_participant.strip().lower():
+                is_match = False
+        
+        # Age matching
+        min_age = d.get('minAge')
+        max_age = d.get('maxAge')
 
-            # You can later process the user_query as needed
-            if user_query:
-                print(f"User query for {nct_id}: {user_query}")
+        #print(age_participant)
+        #print(min_age)
+        #print(max_age)
+        
+        # If minAge is specified, check that participant is older or equal
+        if min_age not in [None, '']:
+            try:
+                min_age = int(min_age)
+                if age_participant < min_age:
+                    is_match = False
+            except (ValueError, TypeError):
+                pass  # Ignore invalid minAge
 
-            # Add a horizontal line to separate entries
-            st.markdown("<hr>", unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+        # If maxAge is specified, check that participant is younger or equal
+        if max_age not in [None, '']:
+            try:
+                max_age = int(max_age)
+                if age_participant > max_age:
+                    is_match = False
+            except (ValueError, TypeError):
+                pass  # Ignore invalid maxAge
+        
+        # Healthy Volunteers matching
+        healthy_volunteers = d.get('healthyVolunteers')
+        if healthy_volunteers not in [None, '']:
+            # Convert to boolean
+            if isinstance(healthy_volunteers, str):
+                healthy_volunteers = healthy_volunteers.lower() == 'true'
+            has_disabilities = (
+                (mental_disability_participant.strip().lower() != 'none' and mental_disability_participant.strip() != '') or
+                (physical_disability_participant.strip().lower() != 'none' and physical_disability_participant.strip() != '')
+            )
+            if healthy_volunteers:
+                if has_disabilities:
+                    is_match = False
+        
+        
+        
+        # After all checks, if is_match is True, add trial to matched_trials
+        if is_match:
+            matched_trials.append(d)
+
+    # Now display the matched trials
+    if matched_trials:
+        for d in matched_trials:
+            try:
+                # Retrieve data without default values
+                nct_id = d.get('nctId', '')
+                status_verified_date = d.get('statusVerifiedDate', '')
+                brief_title = d.get('title', 'No Title')
+                description = d.get('openai_summary', '')
+
+                # Prepare left and right content only if data exists
+                left_content = f"<strong>NCT ID:</strong> {nct_id}" if nct_id else ''
+                right_content = f"<strong>Status Verified Date:</strong> {status_verified_date}" if status_verified_date else ''
+
+                # Display the top line with alignment
+                if left_content or right_content:
+                    st.markdown(
+                        f"""
+                        <div style="display: flex; justify-content: space-between; width: 100%;">
+                            <div style="text-align: left;">{left_content}</div>
+                            <div style="text-align: right;">{right_content}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                st.markdown(f"<h2>{brief_title}</h2>", unsafe_allow_html=True)
+                if description:
+                    st.write(description)
+                else:
+                    st.write("Description not available.")
+                user_query = st.text_input("Do you have any questions?", key=f"ask_{nct_id}")
+
+                # You can later process the user_query as needed
+                if user_query:
+                    print(f"User query for {nct_id}: {user_query}")
+
+                # Add a horizontal line to separate entries
+                st.markdown("<hr>", unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+    else:
+        st.write("No matched clinical trials found.")
+
+# Do you have any questions?
 
 def sign_out():
     st.session_state.signout = False
