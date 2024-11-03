@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 # Load environment variables from a .env file
 load_dotenv()
-openai.api_key = os.getenv('OPENAI_API_KEY')
+openai.api_key = st.secrets["openai"]["api_key"]
 
 # Initialize Firebase only if it hasn't been initialized yet
 if not firebase_admin._apps:
