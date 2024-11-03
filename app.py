@@ -490,6 +490,8 @@ def collect_study_information():
     st.button("Submit", key="submit_button", on_click=submit_form)
 
 def clinicaltrialdata():
+    import streamlit as st
+
     st.markdown(
         '<h1><span style="color: #56c1ca;">C</span>linical <span style="color: #56c1ca;">C</span>onsent</h1>',
         unsafe_allow_html=True
@@ -511,7 +513,6 @@ def clinicaltrialdata():
     participants_ref = db.collection('participants')
     participant_query = participants_ref.where('uid', '==', st.session_state.username).get()
     if participant_query:
-        # Since uid should be unique, we can take the first document
         participant_doc = participant_query[0]
         participant_data = participant_doc.to_dict()
 
@@ -523,7 +524,6 @@ def clinicaltrialdata():
         mental_disability_participant = participant_data.get('mental_disability_participant', '')
         physical_disability_participant = participant_data.get('physical_disability_participant', '')
     else:
-        # Handle the case where no participant is found
         st.error("No participant found with the given UID.")
         return
 
@@ -534,51 +534,51 @@ def clinicaltrialdata():
         st.error("Participant's age is not a valid number.")
         return
 
+    # Initialize pagination variables
+    if 'clinical_trials_last_doc' not in st.session_state:
+        st.session_state.clinical_trials_last_doc = [None]  # List to keep track of last docs per page
+    if 'clinical_trials_page' not in st.session_state:
+        st.session_state.clinical_trials_page = 0
+    if 'matched_trials' not in st.session_state:
+        st.session_state.matched_trials = []
+
+    # Number of documents to retrieve per batch
+    batch_size = 10
+
     # Reference to the 'clinical_trials' collection
     trials_ref = db.collection('clinical_trials')
 
-    # Get all clinical trials
-    clinical_trials_query = trials_ref.get()
+    # Build the query with limit
+    if st.session_state.clinical_trials_page > 0:
+        # Get the last document of the previous page
+        last_doc = st.session_state.clinical_trials_last_doc[st.session_state.clinical_trials_page]
+        clinical_trials_query = trials_ref.limit(batch_size).start_after(last_doc).stream()
+    else:
+        clinical_trials_query = trials_ref.limit(batch_size).stream()
 
-    matched_trials = []
+    # Variable to keep track of the last document
+    last_doc = None
+
+    # Clear matched trials for the current page
+    st.session_state.matched_trials = []
 
     for clinical_trial in clinical_trials_query:
+        last_doc = clinical_trial
         d = clinical_trial.to_dict()
 
         # Initialize match to True
         is_match = True
-        
-        testing = False
-        if testing:
 
-            # Location matching
-            trial_city = d.get('locationCity', '')
-            trial_state = d.get('locationState', '')
-
-            if trial_city != '' and trial_state != '':
-                # For simplicity, we'll assume if city and state match, it's within 20 miles
-                if trial_city.strip().lower() != city_participant.strip().lower() or trial_state.strip().lower() != state_participant.strip().lower():
-                    is_match = False
-            elif trial_state != '':
-                if trial_state.strip().lower() != state_participant.strip().lower():
-                    is_match = False
-            # If both locationCity and locationState are unspecified, treat as unrestrictive
-        
         # Sex matching
         trial_sex = d.get('sex', 'All')
-        if trial_sex not in [None, '', 'All', 'ALL', all]:
+        if trial_sex not in [None, '', 'All', 'ALL']:
             if trial_sex.strip().lower() != sex_participant.strip().lower():
                 is_match = False
-        
+
         # Age matching
         min_age = d.get('minAge')
         max_age = d.get('maxAge')
 
-        #print(age_participant)
-        #print(min_age)
-        #print(max_age)
-        
-        # If minAge is specified, check that participant is older or equal
         if min_age not in [None, '']:
             try:
                 min_age = int(min_age)
@@ -587,7 +587,6 @@ def clinicaltrialdata():
             except (ValueError, TypeError):
                 pass  # Ignore invalid minAge
 
-        # If maxAge is specified, check that participant is younger or equal
         if max_age not in [None, '']:
             try:
                 max_age = int(max_age)
@@ -595,42 +594,39 @@ def clinicaltrialdata():
                     is_match = False
             except (ValueError, TypeError):
                 pass  # Ignore invalid maxAge
-        
+
         # Healthy Volunteers matching
         healthy_volunteers = d.get('healthyVolunteers')
         if healthy_volunteers not in [None, '']:
-            # Convert to boolean
             if isinstance(healthy_volunteers, str):
                 healthy_volunteers = healthy_volunteers.lower() == 'true'
             has_disabilities = (
                 (mental_disability_participant.strip().lower() != 'none' and mental_disability_participant.strip() != '') or
                 (physical_disability_participant.strip().lower() != 'none' and physical_disability_participant.strip() != '')
             )
-            if healthy_volunteers:
-                if has_disabilities:
-                    is_match = False
-        
-        
-        
-        # After all checks, if is_match is True, add trial to matched_trials
-        if is_match:
-            matched_trials.append(d)
+            if healthy_volunteers and has_disabilities:
+                is_match = False
 
-    # Now display the matched trials
-    if matched_trials:
-        for d in matched_trials:
+        if is_match:
+            st.session_state.matched_trials.append(d)
+
+    # Update the last document in session state
+    if len(st.session_state.clinical_trials_last_doc) > st.session_state.clinical_trials_page:
+        st.session_state.clinical_trials_last_doc[st.session_state.clinical_trials_page + 1:] = []
+    st.session_state.clinical_trials_last_doc.append(last_doc)
+
+    # Now display the matched trials for the current batch
+    if st.session_state.matched_trials:
+        for d in st.session_state.matched_trials:
             try:
-                # Retrieve data without default values
                 nct_id = d.get('nctId', '')
                 status_verified_date = d.get('statusVerifiedDate', '')
                 brief_title = d.get('title', 'No Title')
                 description = d.get('openai_summary', '')
 
-                # Prepare left and right content only if data exists
                 left_content = f"<strong>NCT ID:</strong> {nct_id}" if nct_id else ''
                 right_content = f"<strong>Status Verified Date:</strong> {status_verified_date}" if status_verified_date else ''
 
-                # Display the top line with alignment
                 if left_content or right_content:
                     st.markdown(
                         f"""
@@ -649,18 +645,53 @@ def clinicaltrialdata():
                     st.write("Description not available.")
                 user_query = st.text_input("Do you have any questions?", key=f"ask_{nct_id}")
 
-                # You can later process the user_query as needed
                 if user_query:
                     print(f"User query for {nct_id}: {user_query}")
 
-                # Add a horizontal line to separate entries
                 st.markdown("<hr>", unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"An error occurred: {e}")
     else:
         st.write("No matched clinical trials found.")
 
-# Do you have any questions?
+    # Pagination Controls
+    st.markdown(
+        """
+        <style>
+        div.stButton {
+            display: inline-block;
+        }
+        .pagination {
+            text-align: center;
+            white-space: nowrap;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown('<div class="pagination">', unsafe_allow_html=True)
+
+    # Previous Button
+    if st.session_state.clinical_trials_page > 0:
+        if st.button("Previous", key="prev_button"):
+            st.session_state.clinical_trials_page -= 1
+            st.session_state.matched_trials = []
+    else:
+        st.markdown("<span style='display:inline-block; width:80px;'></span>", unsafe_allow_html=True)
+
+    # Page Number
+    st.markdown(f"<span style='margin:0 10px;'>Page {st.session_state.clinical_trials_page + 1}</span>", unsafe_allow_html=True)
+
+    # Next Button
+    if last_doc:
+        if st.button("Next", key="next_button"):
+            st.session_state.clinical_trials_page += 1
+            st.session_state.matched_trials = []
+    else:
+        st.markdown("<span style='display:inline-block; width:80px;'></span>", unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def sign_out():
     st.session_state.signout = False
