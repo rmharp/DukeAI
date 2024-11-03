@@ -509,8 +509,8 @@ def collect_study_information():
     st.button("Submit", key="submit_button", on_click=submit_form)
 
 
-def fetch_clinical_trial_by_nct_id(db, nct_id):
-    trials_ref = db.collection('clinical_trials')
+def fetch__by_nct_id(db, nct_id):
+    trials_ref = db.collection('s')
     docs = trials_ref.where('nctId', '==', nct_id).get()
     if docs:
         return docs[0].to_dict()
@@ -519,7 +519,7 @@ def fetch_clinical_trial_by_nct_id(db, nct_id):
         return None
 
 
-def get_openai_response(user_question, clinical_trial_data, model_choice="gpt-3.5-turbo"):
+def get_openai_response(user_question, _data, model_choice="gpt-3.5-turbo"):
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
@@ -541,7 +541,7 @@ def get_openai_response(user_question, clinical_trial_data, model_choice="gpt-3.
     # Prepare the assistant content from Firestore data
     assistant_content = (
         f"Here is detailed information about the clinical trial:\n"
-        f"- **Title**: {clinical_trial_data.get('title', 'No Title')}\n"
+        f"- **Title**: {_data.get('title', 'No Title')}\n"
         f"- **Summary**: {clinical_trial_data.get('briefSummary', 'Summary not available')}\n"
         f"- **Description**: {clinical_trial_data.get('description', 'Description not available')}\n"
         f"- **Eligibility Criteria**: {clinical_trial_data.get('eligibilityCriteria', 'Not specified')}\n"
@@ -630,7 +630,7 @@ def clinicaltrialdata():
     batch_size = 10
 
     # Reference to the 'clinical_trials' collection
-    trials_ref = db.collection('clinical_trials')
+    trials_ref = db.collection('clinical_trials_final')
 
     # Build the query with limit
     if st.session_state.clinical_trials_page > 0:
