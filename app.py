@@ -509,8 +509,8 @@ def collect_study_information():
     st.button("Submit", key="submit_button", on_click=submit_form)
 
 
-def fetch__by_nct_id(db, nct_id):
-    trials_ref = db.collection('s')
+def fetch_clinical_trial_by_nct_id(db, nct_id):
+    trials_ref = db.collection('clinical_trials_final')
     docs = trials_ref.where('nctId', '==', nct_id).get()
     if docs:
         return docs[0].to_dict()
