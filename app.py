@@ -67,7 +67,7 @@ def login_page():
                     st.session_state.useremail = user.email
                     st.session_state.username = user.uid
                     st.session_state.signout = True
-                    st.session_state.current_page = 'collect_study_information'
+                    st.session_state.current_page = 'participant_profile'
                     st.session_state.db = firestore.client()
 
                     # Force a rerun by updating a dummy session state variable
@@ -128,29 +128,97 @@ def participant_profile_setup_page():
     
     st.title("Set up your Profile")
 
-    with st.form("profile_form"):
-        first_name = st.text_input("First Name")
-        last_name = st.text_input("Last Name")
-        sexuality = st.selectbox("Sexuality", ["Heterosexual", "Homosexual", "Bisexual", "Other"])
-        age = st.number_input("Age", min_value=0)
-        sex = st.selectbox("Sex", ["Male", "Female", "Other"])
-        location = st.text_input("Location")
-        height = st.number_input("Height (in cm)", min_value=0.0)
-        weight = st.number_input("Weight (in kg)", min_value=0.0)
-        previous_surgery = st.text_input("Previous Surgery (if any)")
-        mental_disability = st.text_input("Mental Disability (if any)")
-        physical_disability = st.text_input("Current Physical Disability or Disease (if any)")
-        previous_records = st.text_area("Previous Records of Disease or Surgery")
-        pregnancy = st.selectbox("Are you currently pregnant?", ["No", "Yes", "Not applicable"])
-        breastfeeding = st.selectbox("Are you currently breastfeeding?", ["No", "Yes", "Not applicable"])
-        allergy = st.text_input("Allergies (if any)")
-        smoking = st.selectbox("Do you smoke?", ["No", "Occasionally", "Regularly"])
-        blood_type = st.selectbox("Blood Type", ["A", "B", "AB", "O", "Unknown"])
+    first_name_participant = st.text_input("First Name", key="first_name_participant")
+    last_name_participant = st.text_input("Last Name", key="last_name_participant")
+    sexuality_participant = st.selectbox("Sexuality", ["Heterosexual", "Homosexual", "Bisexual", "Other"], key="sexuality_participant")
+    age_participant = st.number_input("Age", min_value=0.0, key="age_participant")
+    sex_participant = st.selectbox("Sex", ["Male", "Female", "Other"], key="sex_participant")
+    state_participant = st.text_input("State", key='state_participant')
+    city_participant = st.text_input("City", key='city_participant')
+    address_participant = st.text_input("Address", key='address_participant')
+    
+    height_participant = st.number_input("Height (in cm)", min_value=0.0, key="height_participant")
+    weight_participant = st.number_input("Weight (in kg)", min_value=0.0, key="weight_participant")
+    previous_surgery_participant = st.text_input("Previous Surgery (if any)", key="previous_surgery_participant")
+    mental_disability_participant = st.text_input("Mental Disability (if any)", key="mental_disability_participant")
+    physical_disability_participant = st.text_input("Current Physical Disability or Disease (if any)", key="physical_disability_participant")
+    previous_records_participant = st.text_area("Previous Records of Disease or Surgery", key="previous_records_participant")
+    pregnancy_participant = st.selectbox("Are you currently pregnant?", ["No", "Yes", "Not applicable"], key="pregnancy_participant")
+    breastfeeding_participant = st.selectbox("Are you currently breastfeeding?", ["No", "Yes", "Not applicable"], key="breastfeeding_participant")
+    allergy_participant = st.text_input("Allergies (if any)", key="allergy_participant")
+    smoking_participant = st.selectbox("Do you smoke?", ["No", "Occasionally", "Regularly"], key="smoking_participant")
+    blood_type_participant = st.selectbox("Blood Type", ["A", "B", "AB", "O", "Unknown"], key="blood_type_participant")
 
-        # Submit button
-        submitted = st.form_submit_button("Submit Profile")
-        if submitted:
-            st.success("Profile information saved successfully!")   
+    # Define the participant info form submission function
+    def submit_form_participant():
+        # Access all input values from st.session_state
+        first_name_participant = st.session_state.first_name_participant
+        last_name_participant = st.session_state.last_name_participant
+        sexuality_participant = st.session_state.sexuality_participant
+        age_participant = st.session_state.age_participant
+        sex_participant = st.session_state.sex_participant
+        state_participant = st.session_state.state_participant
+        city_participant = st.session_state.city_participant
+        address_participant = st.session_state.address_participant
+        height_participant = st.session_state.height_participant
+        weight_participant = st.session_state.weight_participant
+        previous_surgery_participant = st.session_state.previous_surgery_participant
+        mental_disability_participant = st.session_state.mental_disability_participant
+        physical_disability_participant = st.session_state.physical_disability_participant
+        previous_records_participant = st.session_state.previous_records_participant
+        pregnancy_participant = st.session_state.pregnancy_participant
+        breastfeeding_participant = st.session_state.breastfeeding_participant
+        allergy_participant = st.session_state.allergy_participant
+        smoking_participant = st.session_state.smoking_participant
+        blood_type_participant = st.session_state.blood_type_participant
+        uid = st.session_state.username
+
+        # Validate inputs
+        if not first_name_participant or not last_name_participant or not age_participant or not sex_participant or not state_participant or not city_participant or not address_participant or not mental_disability_participant or not physical_disability_participant or not pregnancy_participant or not allergy_participant:
+            st.error("Please fill out all the required participant details.")
+        else:
+            try:
+                db = st.session_state.db
+                # Use 'studies' as the document reference
+                participants = db.collection('participants').document()
+
+                # Prepare the data to save
+                data = {
+                    'first_name_participant': st.session_state.first_name_participant,
+                    'last_name_participant': st.session_state.last_name_participant,
+                    'sexuality_participant': st.session_state.sexuality_participant,
+                    'age_participant': st.session_state.age_participant,
+                    'sex_participant': st.session_state.sex_participant,
+                    'state_participant': st.session_state.state_participant,
+                    'city_participant': st.session_state.city_participant,
+                    'address_participant': st.session_state.address_participant,
+                    'height_participant': st.session_state.height_participant,
+                    'weight_participant': st.session_state.weight_participant,
+                    'previous_surgery_participant': st.session_state.previous_surgery_participant,
+                    'mental_disability_participant': st.session_state.mental_disability_participant,
+                    'physical_disability_participant': st.session_state.physical_disability_participant,
+                    'previous_records_participant': st.session_state.previous_records_participant,
+                    'pregnancy_participant': st.session_state.pregnancy_participant,
+                    'breastfeeding_participant': st.session_state.breastfeeding_participant,
+                    'allergy_participant': st.session_state.allergy_participant,
+                    'smoking_participant': st.session_state.smoking_participant,
+                    'blood_type_participant': st.session_state.blood_type_participant,
+                    'timestamp': datetime.datetime.utcnow(),
+                    'uid': uid
+                }
+
+                # Save the data to Firestore
+                participants.set(data)
+
+                st.success("Form submitted successfully!")
+                st.session_state.current_page = 'clinicaltrialdata'
+                # Force a rerun
+                st.session_state['dummy'] = not st.session_state.get('dummy', False)
+            except Exception as e:
+                st.error(f"An error occurred while submitting the form: {e}")
+
+    # Attach the submit_form function to the button
+    st.button("Submit", key="submit_button_participant", on_click=submit_form_participant) 
 
 def researcher_profile_setup_page():
     st.title(':blue[T]rial :blue[T]alk')
@@ -210,6 +278,7 @@ def collect_study_information():
     # Define the form submission function
     def submit_form():
         # Access all input values from st.session_state
+        #keys matching
         study_name = st.session_state.study_name
         description = st.session_state.description
         sexuality = st.session_state.sexuality
