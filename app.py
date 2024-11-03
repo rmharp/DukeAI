@@ -672,26 +672,51 @@ def clinicaltrialdata():
 
     st.markdown('<div class="pagination">', unsafe_allow_html=True)
 
-    # Previous Button
-    if st.session_state.clinical_trials_page > 0:
-        if st.button("Previous", key="prev_button"):
-            st.session_state.clinical_trials_page -= 1
-            st.session_state.matched_trials = []
-    else:
-        st.markdown("<span style='display:inline-block; width:80px;'></span>", unsafe_allow_html=True)
+    custom_css = """
+    <style>
+        /* Targeting the Next button specifically using its key */
+        .stButton[data-baseweb="button"][key="next_button"] {
+            border-radius: 100px;
+            background-color: red;  
+            color: white;  /* Optional: change text color */
+        }
+    </style>
+    """
 
-    # Page Number
-    st.markdown(f"<span style='margin:0 10px;'>Page {st.session_state.clinical_trials_page + 1}</span>", unsafe_allow_html=True)
+    # Inject the CSS into the Streamlit app
+    st.markdown(custom_css, unsafe_allow_html=True)
+
+    # Create a container for the buttons and page number
+    col1, col2, col3, col4, col5, col6, col7  = st.columns([1.5, 1, 1, 1, 1, 1, 1])  # You can adjust the weights as needed
+
+    # Previous Button
+    with col1:
+        if st.session_state.clinical_trials_page > 0:
+            if st.button("Previous", key="prev_button"):
+                st.session_state.clinical_trials_page -= 1
+                st.session_state.matched_trials = []
+        else:
+            st.markdown("<span style='display:inline-block; width:80px;'></span>", unsafe_allow_html=True)
+
+    # Page Number (Uncomment if you want to show it)
+    with col4:
+        st.markdown(
+            f"""
+            <div style='display: flex; align-items: center; justify-content: center; height: 100%; line-height: ;35px;'>
+                <span style='font-size:18px; line-height: ;35px;'>Page {st.session_state.clinical_trials_page + 1}</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     # Next Button
-    if last_doc:
-        if st.button("Next", key="next_button"):
-            st.session_state.clinical_trials_page += 1
-            st.session_state.matched_trials = []
-    else:
-        st.markdown("<span style='display:inline-block; width:80px;'></span>", unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col7:
+        if last_doc:
+            if st.button("Next", key="next_button"):
+                st.session_state.clinical_trials_page += 1
+                st.session_state.matched_trials = []
+        else:
+            st.markdown("<span style='display:inline-block; width:150px;'></span>", unsafe_allow_html=True)
 
 def sign_out():
     st.session_state.signout = False
