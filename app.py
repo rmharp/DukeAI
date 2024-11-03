@@ -46,7 +46,7 @@ def app():
             st.error('Unknown page')
 
 def login_page():
-    st.title(':blue[T]rial :blue[T]alk')
+    st.title(':blue[C]linical :blue[C]onsent')
 
     choice = st.selectbox('Login/Signup', ['Login', 'Sign Up'], key='login_choice')
 
@@ -60,15 +60,55 @@ def login_page():
                 email = st.session_state.login_email
                 password = st.session_state.login_password
 
-                # Authenticate user (Note: This should be replaced with proper authentication)
+                # Authenticate user (Note: Replace this with proper password verification)
                 user = auth.get_user_by_email(email)
                 if user:
                     # Assuming authentication is successful
                     st.session_state.useremail = user.email
                     st.session_state.username = user.uid
                     st.session_state.signout = True
-                    st.session_state.current_page = 'researcher_profile'
                     st.session_state.db = firestore.client()
+                    st.session_state.logged_in = True
+                    
+                    # Initialize registered and researcher flags
+                    st.session_state.registered = False
+                    st.session_state.researcher = False
+
+                    # Check if the user is registered
+                    db = st.session_state.db
+                    if not db:
+                        st.error('Database connection not established.')
+                        return
+
+                    # Check in participants collection
+                    participants_ref = db.collection('participants')
+                    participants_query = participants_ref.where('uid', '==', st.session_state.username).get()
+                    if participants_query:
+                        # User is a participant
+                        st.session_state.registered = True
+                        st.session_state.researcher = False
+                    else:
+                        # Check in researchers collection
+                        researchers_ref = db.collection('researchers')
+                        researchers_query = researchers_ref.where('uid', '==', st.session_state.username).get()
+                        if researchers_query:
+                            # User is a researcher
+                            st.session_state.registered = True
+                            st.session_state.researcher = True
+                        else:
+                            # User not registered in either collection
+                            st.session_state.registered = False
+                            st.session_state.researcher = False
+
+                    # Now, based on the flags, set the current page
+                    if st.session_state.logged_in and not st.session_state.registered:
+                        st.session_state.current_page = 'role_selection'
+                    elif st.session_state.logged_in and st.session_state.registered and st.session_state.researcher:
+                        st.session_state.current_page = 'collect_study_information'
+                    elif st.session_state.logged_in and st.session_state.registered and not st.session_state.researcher:
+                        st.session_state.current_page = 'clinicaltrialdata'
+                    else:
+                        st.error('Unknown state. Please contact support.')
 
                     # Force a rerun by updating a dummy session state variable
                     st.session_state['dummy'] = not st.session_state.get('dummy', False)
@@ -99,7 +139,7 @@ def login_page():
         st.button('Create my account', key='signup_button', on_click=create_account)
 
 def role_selection_page():
-    st.title(':blue[T]rial :blue[T]alk')
+    st.title(':blue[C]linical :blue[C]onsent')
 
     # Display user info and sign out button
     st.text('Username: ' + st.session_state.username)
@@ -110,16 +150,18 @@ def role_selection_page():
     
     if st.button('Participant'):
         st.write("You selected Participant.")
-        st.session_state.show_role_selection = False
-        st.session_state.show_participant_profile = True  # Show participant profile setup
+        st.session_state.current_page = 'participant_profile'
+        # Force a rerun
+        st.session_state['dummy'] = not st.session_state.get('dummy', False)
     elif st.button('Researcher'):
         st.write("You selected Researcher.")
-        st.session_state.show_role_selection = False
-        st.session_state.show_researcher_profile = True # Show researcher profile setup
-        
+        st.session_state.current_page = 'researcher_profile'
+        # Force a rerun
+        st.session_state['dummy'] = not st.session_state.get('dummy', False)
 
 def participant_profile_setup_page():
-    st.title(':blue[T]rial :blue[T]alk')
+    global registered
+    st.title(':blue[C]linical :blue[C]onsent')
 
     # Display user info and sign out button
     st.text('Username: ' + st.session_state.username)
@@ -131,18 +173,17 @@ def participant_profile_setup_page():
     first_name_participant = st.text_input("First Name", key="first_name_participant")
     last_name_participant = st.text_input("Last Name", key="last_name_participant")
     sexuality_participant = st.selectbox("Sexuality", ["Heterosexual", "Homosexual", "Bisexual", "Other"], key="sexuality_participant")
-    age_participant = st.number_input("Age", min_value=0.0, key="age_participant")
+    age_participant = st.number_input("Age", min_value=0, max_value=120, step=5, key="age_participant")
     sex_participant = st.selectbox("Sex", ["Male", "Female", "Other"], key="sex_participant")
     state_participant = st.text_input("State", key='state_participant')
     city_participant = st.text_input("City", key='city_participant')
     address_participant = st.text_input("Address", key='address_participant')
-    
-    height_participant = st.number_input("Height (in cm)", min_value=0.0, key="height_participant")
-    weight_participant = st.number_input("Weight (in kg)", min_value=0.0, key="weight_participant")
+    height_participant = st.number_input("Height (in)", min_value=0.0, max_value=300.0, step=10.0, key="height_participant")
+    weight_participant = st.number_input("Weight (lb)", min_value=0.0, max_value=500.0, step=20.0, key="weight_participant")
     previous_surgery_participant = st.text_input("Previous Surgery (if any)", key="previous_surgery_participant")
     mental_disability_participant = st.text_input("Mental Disability (if any)", key="mental_disability_participant")
     physical_disability_participant = st.text_input("Current Physical Disability or Disease (if any)", key="physical_disability_participant")
-    previous_records_participant = st.text_area("Previous Records of Disease or Surgery", key="previous_records_participant")
+    previous_records_participant = st.text_area("Previous Records of Disease or Surgery (if any)", key="previous_records_participant")
     pregnancy_participant = st.selectbox("Are you currently pregnant?", ["No", "Yes", "Not applicable"], key="pregnancy_participant")
     breastfeeding_participant = st.selectbox("Are you currently breastfeeding?", ["No", "Yes", "Not applicable"], key="breastfeeding_participant")
     allergy_participant = st.text_input("Allergies (if any)", key="allergy_participant")
@@ -151,6 +192,7 @@ def participant_profile_setup_page():
 
     # Define the participant info form submission function
     def submit_form_participant():
+        global registered
         # Access all input values from st.session_state
         first_name_participant = st.session_state.first_name_participant
         last_name_participant = st.session_state.last_name_participant
@@ -174,7 +216,7 @@ def participant_profile_setup_page():
         uid = st.session_state.username
 
         # Validate inputs to form
-        if not first_name_participant or not last_name_participant or not age_participant or not sex_participant or not state_participant or not city_participant or not address_participant or not mental_disability_participant or not physical_disability_participant or not pregnancy_participant or not allergy_participant:
+        if not first_name_participant or not last_name_participant or not age_participant or not sex_participant or not state_participant or not city_participant or not address_participant or not pregnancy_participant:
             st.error("Please fill out all the required participant details.")
         else:
             try:
@@ -212,16 +254,17 @@ def participant_profile_setup_page():
 
                 st.success("Form submitted successfully!")
                 st.session_state.current_page = 'clinicaltrialdata'
+                registered = True
                 # Force a rerun
                 st.session_state['dummy'] = not st.session_state.get('dummy', False)
             except Exception as e:
                 st.error(f"An error occurred while submitting the form: {e}")
 
     # Attach the submit_form function to the button
-    st.button("Submit", key="submit_button_participant", on_click=submit_form_participant) 
+    st.button("Submit Profile", key="submit_button_participant", on_click=submit_form_participant) 
 
 def researcher_profile_setup_page():
-    st.title(':blue[T]rial :blue[T]alk')
+    st.title(':blue[C]linical :blue[C]onsent')
 
     # Display user info and sign out button
     st.text('Username: ' + st.session_state.username)
@@ -239,6 +282,7 @@ def researcher_profile_setup_page():
     
     # Define the researcher info form submission function
     def submit_form_researcher():
+        global registered
         # Access all input values from st.session_state
         name_researcher = st.session_state.name_researcher
         organization_email_researcher = st.session_state.organization_email_researcher
@@ -249,7 +293,7 @@ def researcher_profile_setup_page():
         uid = st.session_state.username
 
         # Validate inputs to form
-        if not name_researcher or not organization_email_researcher or not phone_number_researcher:
+        if not name_researcher or not organization_email_researcher or not phone_number_researcher or not actively_recruiting_researcher:
             st.error("Please fill out all the required researcher details.")
         else:
             try:
@@ -274,16 +318,17 @@ def researcher_profile_setup_page():
 
                 st.success("Form submitted successfully!")
                 st.session_state.current_page = 'clinicaltrialdata'
+                registered = True
                 # Force a rerun
                 st.session_state['dummy'] = not st.session_state.get('dummy', False)
             except Exception as e:
                 st.error(f"An error occurred while submitting the form: {e}")
 
     # Attach the submit_form function to the button
-    st.button("Submit", key="submit_button_researcher", on_click=submit_form_researcher) 
+    st.button("Submit Profile", key="submit_button_researcher", on_click=submit_form_researcher) 
 
 def collect_study_information():
-    st.title(':blue[T]rial :blue[T]alk')
+    st.title(':blue[C]linical :blue[C]onsent')
 
     # Display user info and sign out button
     st.text('Username: ' + st.session_state.username)
@@ -334,6 +379,7 @@ def collect_study_information():
         physical_disability = st.session_state.physical_disability
         blood_type = st.session_state.blood_type
         consent_form = st.session_state.consent_form
+        uid = st.session_state.username
 
         # Validate inputs
         if not study_name or not description:
@@ -364,7 +410,8 @@ def collect_study_information():
                         'physical_disability': physical_disability,
                         'blood_type': blood_type,
                     },
-                    'timestamp': datetime.datetime.utcnow()
+                    'timestamp': datetime.datetime.utcnow(),
+                    'uid': uid
                 }
 
                 # Save the data to Firestore
@@ -381,7 +428,7 @@ def collect_study_information():
     st.button("Submit", key="submit_button", on_click=submit_form)
 
 def clinicaltrialdata():
-    st.title(':blue[T]rial :blue[T]alk')
+    st.title(':blue[C]linical :blue[C]onsent')
 
     # Display user info and sign out button
     st.text('Username: ' + st.session_state.username)
