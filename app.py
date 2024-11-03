@@ -519,7 +519,7 @@ def fetch_clinical_trial_by_nct_id(db, nct_id):
         return None
 
 
-def get_openai_response(user_question, _data, model_choice="gpt-3.5-turbo"):
+def get_openai_response(user_question, clinical_trial_data, model_choice="gpt-3.5-turbo"):
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
@@ -541,7 +541,7 @@ def get_openai_response(user_question, _data, model_choice="gpt-3.5-turbo"):
     # Prepare the assistant content from Firestore data
     assistant_content = (
         f"Here is detailed information about the clinical trial:\n"
-        f"- **Title**: {_data.get('title', 'No Title')}\n"
+        f"- **Title**: {clinical_trial_data.get('title', 'No Title')}\n"
         f"- **Summary**: {clinical_trial_data.get('briefSummary', 'Summary not available')}\n"
         f"- **Description**: {clinical_trial_data.get('description', 'Description not available')}\n"
         f"- **Eligibility Criteria**: {clinical_trial_data.get('eligibilityCriteria', 'Not specified')}\n"
