@@ -376,7 +376,7 @@ def researcher_profile_setup_page():
                 researchers.set(data)
 
                 st.success("Form submitted successfully!")
-                st.session_state.current_page = 'clinicaltrialdata'
+                st.session_state.current_page = 'collect_study_information'
                 registered = True
                 # Force a rerun
                 st.session_state['dummy'] = not st.session_state.get('dummy', False)
