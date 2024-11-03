@@ -173,7 +173,7 @@ def participant_profile_setup_page():
         blood_type_participant = st.session_state.blood_type_participant
         uid = st.session_state.username
 
-        # Validate inputs
+        # Validate inputs to form
         if not first_name_participant or not last_name_participant or not age_participant or not sex_participant or not state_participant or not city_participant or not address_participant or not mental_disability_participant or not physical_disability_participant or not pregnancy_participant or not allergy_participant:
             st.error("Please fill out all the required participant details.")
         else:
